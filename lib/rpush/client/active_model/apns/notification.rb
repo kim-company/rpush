@@ -90,7 +90,7 @@ module Rpush
 
           def priority_for_frame
             # It is an error to use APNS_PRIORITY_IMMEDIATE for a notification that only contains content-available.
-            if ['content-available', 'mutable-content'].include?(as_json['aps'].keys)
+            if as_json['aps'].keys == ['content-available']
               APNS_PRIORITY_CONSERVE_POWER
             else
               priority || APNS_PRIORITY_IMMEDIATE
