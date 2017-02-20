@@ -38,6 +38,12 @@ module Rpush
             self.data = (data || {}).merge(CONTENT_AVAILABLE_KEY => true)
           end
 
+          MUTABLE_CONTENT_KEY = '__rpush_mutable_content__'
+          def mutable_content=(bool)
+            return unless bool
+            self.data = (data || {}).merge(MUTABLE_CONTENT_KEY => true)
+          end
+
           def as_json # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
             json = ActiveSupport::OrderedHash.new
 
@@ -55,8 +61,12 @@ module Rpush
                 json['aps']['content-available'] = 1
               end
 
+              if data && data[MUTABLE_CONTENT_KEY]
+                json['aps']['mutable-content'] = 1
+              end
+
               if data
-                non_aps_attributes = data.reject { |k, _| k == CONTENT_AVAILABLE_KEY }
+                non_aps_attributes = data.reject { |k, _| k == CONTENT_AVAILABLE_KEY || k == MUTABLE_CONTENT_KEY }
                 non_aps_attributes.each { |k, v| json[k.to_s] = v }
               end
             end
@@ -80,7 +90,7 @@ module Rpush
 
           def priority_for_frame
             # It is an error to use APNS_PRIORITY_IMMEDIATE for a notification that only contains content-available.
-            if as_json['aps'].keys == ['content-available']
+            if ['content-available', 'mutable-content'].include?(as_json['aps'].keys)
               APNS_PRIORITY_CONSERVE_POWER
             else
               priority || APNS_PRIORITY_IMMEDIATE
